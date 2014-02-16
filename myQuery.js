@@ -9,11 +9,21 @@
   var isObject = function isObject(obj) {
     return typeof obj === 'object' && obj instanceof Object;
   };
+  var isArray = function isArray(obj) {
+    return Array.isArray ? Array.isArray(obj) : obj instanceof Array;
+  };
 
   var get = function get(url, callback) {
-    if (isString(url) && isFunction(callback)) {
-      // TODO write ajax call once proxy is set up
-      callback(window.testdata);
+    if (isString(url)) {
+      if (isFunction(callback)) {
+        // TODO write ajax call once proxy is set up
+        callback(window.testdata);
+      } else if (window.Promise) {
+        return new Promise(function(resolve, reject) {
+          // TODO write ajax call once proxy is set up
+          resolve(window.testdata);
+        });
+      }
     }
   };
 
@@ -29,6 +39,49 @@
     }
   };
 
+  var text = function(newText) {
+    if (newText) {
+      for (var i = this.length || 0; i--;) {
+        this[i].textContent = newText;
+      }
+    } else {
+      return (this[0] || {}).textContent;
+    }
+  };
+
+  var append = function(children) {
+    if (!isArray(children)) {
+      children = [children];
+    }
+    for (var i = this.length || 0; i--;) {
+      for (var j = 0, l = children.length; j < l; j++) {
+        this[i].appendChild(children[j]);
+      }
+    }
+  };
+
+  var show = function() {
+    for (var i = this.length || 0; i--;) {
+      this[i].style.display = '';
+    }
+  };
+
+  var hide = function() {
+    for (var i = this.length || 0; i--;) {
+      this[i].style.display = 'none';
+    }
+  };
+
+  var css = function(key, val) {
+    if (val === undefined) {
+      return ((this[0] || {}).style || {})[key];
+    } else {
+      for (var i = this.length || 0; i--;) {
+        this[i].style[key] = val;
+      }
+    }
+  };
+
   var myQuery = window.myQuery = function myQuery(selector) {
     var results = [];
     if (isString(selector)) {
@@ -40,12 +93,25 @@
         if (result) {
           results = [result];
         }
-      } else if (document.getElementsByClassName || document.querySelectorAll) {
-        results = isClass ? document.getElementsByClassName(name) : document.querySelectorAll(selector);
+      } else if (document.getElementsByClassName && document.querySelectorAll) {
+        if (isClass) {
+          results = document.getElementsByClassName(name);
+        } else if (/^\s*<(?:.|\n)*?>\s*$/m.test(selector)) { // isHtml?
+          var div = document.createElement('div');
+          div.innerHTML = selector;
+          results = Array.prototype.slice.call(div.childNodes);
+        } else {
+          results = document.querySelectorAll(selector);
+        }
       } else {
         console.error('Are you using IE?');
       }
     }
+    results.text = text;
+    results.append = append;
+    results.show = show;
+    results.hide = hide;
+    results.css = css;
     return results;
   };
 
